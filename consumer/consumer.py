@@ -24,6 +24,7 @@ s3 = boto3.client(
 )
 
 bucket = "bronze-trans-folder"
+
 consumer = KafkaConsumer(
     "stock-quotes",
     bootstrap_servers=["localhost:29092"],
@@ -36,14 +37,12 @@ consumer = KafkaConsumer(
 
 print("Consumer streaming and saving to MinIO")
 
-
+#main
 for message in consumer:
-    print('message')
     record =message.value
     symbol = record.get("symbol")
     ts = record.get("fetched_at",int(time.time()))
     key = f"{symbol}/{ts}.json"
-    print(key)
 
     s3.put_object(
         Bucket=bucket,
