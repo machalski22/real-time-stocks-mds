@@ -24,10 +24,10 @@ s3 = boto3.client(
 )
 
 bucket = "bronze-transactions"
-
 consumer = KafkaConsumer(
     "stock-quotes",
-    bootstrap_servers=["host.docker.internal:29092"],
+    bootstrap_servers=["localhost:29092"],
+    api_version=(0, 11, 5),
     enable_auto_commit=True,
     auto_offset_reset="earliest",
     group_id="bronze-consumer",
@@ -36,12 +36,14 @@ consumer = KafkaConsumer(
 
 print("Consumer streaming and saving to MinIO")
 
-#main
+
 for message in consumer:
+    print('message')
     record =message.value
     symbol = record.get("symbol")
     ts = record.get("fetched_at",int(time.time()))
     key = f"{symbol}_{ts}.json"
+    print(key)
 
     s3.put_object(
         Bucket=bucket,
