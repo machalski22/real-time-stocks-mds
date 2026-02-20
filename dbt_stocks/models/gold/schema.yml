@@ -1,0 +1,153 @@
+version: 2
+
+models:
+  - name: gold_kpi
+    description: |
+      Key Performance Indicators (KPIs) for stock quotes showing the latest metrics per symbol.
+      This table model provides real-time access to current price, change amount, and change percentage
+      for each stock symbol. Rebuilt on each run to ensure latest data from the incremental silver layer.
+      
+      **Materialization**: Table
+      **Business Use Case**: Dashboard displays, real-time monitoring, alerting
+    
+    config:
+      materialized: table
+    
+    columns:
+      - name: symbol
+        description: Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
+        data_type: string
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              to: ref('silver_cleaned_stock_quotes')
+              field: symbol
+      
+      - name: current_price
+        description: Latest current stock price for the symbol
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: change_amount
+        description: Latest absolute change in price from previous close
+        data_type: float
+      
+      - name: change_percent
+        description: Latest percentage change in price from previous close
+        data_type: float
+      
+      - name: market_timestamp
+        description: Timestamp of the latest market data record
+        data_type: timestamp
+      
+      - name: fetched_at
+        description: Timestamp when the latest data was fetched
+        data_type: timestamp
+
+  - name: gold_volitality
+    description: |
+      Volatility analysis model calculating price volatility metrics for each stock symbol.
+      This table model computes standard deviation (volatility) and relative volatility
+      (coefficient of variation) across all historical price data from the silver layer.
+      Rebuilt on each run to ensure accurate volatility calculations using all available data.
+      
+      **Materialization**: Table
+      **Business Use Case**: Risk analysis, portfolio optimization, volatility-based trading strategies
+    
+    config:
+      materialized: table
+    
+    columns:
+      - name: symbol
+        description: Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
+        data_type: string
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              to: ref('silver_cleaned_stock_quotes')
+              field: symbol
+      
+      - name: avg_price
+        description: Average of the latest price observations for the symbol
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: volatility
+        description: |
+          Population standard deviation of prices (absolute volatility measure).
+          Higher values indicate greater price variability.
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: relative_volatility
+        description: |
+          Coefficient of variation (volatility / average price).
+          Normalized volatility measure that allows comparison across stocks with different price levels.
+          Higher values indicate greater relative price variability.
+        data_type: float
+        tests:
+          - not_null
+
+  - name: gold_candle
+    description: |
+      Candlestick chart data model providing OHLC (Open, High, Low, Close) aggregations by trading day.
+      This table model creates daily candles showing price movements, trends, and trading ranges
+      for each stock symbol. Maintains the most recent 12 trading days per symbol.
+      Rebuilt on each run to ensure latest candlestick data from the incremental silver layer.
+      
+      **Materialization**: Table
+      **Business Use Case**: Technical analysis, charting, pattern recognition, trading signals
+    
+    config:
+      materialized: table
+    
+    columns:
+      - name: symbol
+        description: Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
+        data_type: string
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_cleaned_stock_quotes')
+              field: symbol
+      
+      - name: candle_time
+        description: Trading date for the candlestick (date only, no time component)
+        data_type: date
+        tests:
+          - not_null
+      
+      - name: candle_open
+        description: Opening price for the trading day (first price of the day)
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: candle_high
+        description: Highest price reached during the trading day
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: candle_low
+        description: Lowest price reached during the trading day
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: candle_close
+        description: Closing price for the trading day (last price of the day)
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: trend_line
+        description: Average price throughout the trading day (used for trend analysis)
+        data_type: float
+        tests:
+          - not_null

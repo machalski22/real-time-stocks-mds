@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: bronze_stg_stock_quotes
+    description: |
+      Staging model that extracts and transforms raw stock quote data from the bronze layer.
+      This model parses JSON fields from the raw data source and converts them to proper data types.
+      It serves as the foundation for all downstream transformations.
+    
+    columns:
+      - name: symbol
+        description: Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
+        data_type: string
+        tests:
+          - not_null
+          - unique
+      
+      - name: current_price
+        description: Current stock price at the time of the quote
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: day_high
+        description: Highest price reached during the trading day
+        data_type: float
+      
+      - name: day_low
+        description: Lowest price reached during the trading day
+        data_type: float
+      
+      - name: day_open
+        description: Opening price at the start of the trading day
+        data_type: float
+      
+      - name: prev_close
+        description: Previous day's closing price
+        data_type: float
+      
+      - name: change_amount
+        description: Absolute change in price from previous close
+        data_type: float
+      
+      - name: change_percent
+        description: Percentage change in price from previous close
+        data_type: float
+      
+      - name: market_timestamp
+        description: Timestamp when the market data was recorded
+        data_type: timestamp
+        tests:
+          - not_null
+      
+      - name: fetched_at
+        description: Timestamp when the data was fetched from the API
+        data_type: timestamp
+        tests:
+          - not_null
+
+sources:
+  - name: raw
+    description: Raw data source from MinIO/S3 containing stock market quotes
+    database: STOCKS_MDS
+    schema: COMMON
+    tables:
+      - name: bronze_stock_quotes_raw
+        description: |
+          Raw stock quote data stored as JSON/VARIANT in Snowflake.
+          This table contains unprocessed market data ingested from external APIs.
+        columns:
+          - name: v
+            description: JSON variant column containing all stock quote fields
+            data_type: variant

@@ -1,0 +1,70 @@
+version: 2
+
+models:
+  - name: silver_cleaned_stock_quotes
+    description: |
+      Cleaned and validated stock quote data from the silver layer.
+      This incremental model applies data quality checks, rounds numeric values for consistency,
+      and filters out invalid records. It serves as the primary source for gold layer analytics.
+      
+      **Materialization**: Incremental (merge strategy)
+      **Unique Key**: symbol, market_timestamp
+      **Incremental Filter**: Only processes new records based on fetched_at timestamp
+    
+    config:
+      materialized: incremental
+      unique_key: ['symbol', 'market_timestamp']
+      incremental_strategy: merge
+      on_schema_change: append_new_columns
+    
+    columns:
+      - name: symbol
+        description: Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
+        data_type: string
+        tests:
+          - not_null
+          - relationships:
+              to: ref('bronze_stg_stock_quotes')
+              field: symbol
+      
+      - name: current_price
+        description: Current stock price rounded to 2 decimal places
+        data_type: float
+        tests:
+          - not_null
+      
+      - name: day_high
+        description: Highest price reached during the trading day (rounded to 2 decimals)
+        data_type: float
+      
+      - name: day_low
+        description: Lowest price reached during the trading day (rounded to 2 decimals)
+        data_type: float
+      
+      - name: day_open
+        description: Opening price at the start of the trading day (rounded to 2 decimals)
+        data_type: float
+      
+      - name: prev_close
+        description: Previous day's closing price (rounded to 2 decimals)
+        data_type: float
+      
+      - name: change_amount
+        description: Absolute change in price from previous close
+        data_type: float
+      
+      - name: change_percent
+        description: Percentage change in price from previous close (rounded to 4 decimals)
+        data_type: float
+      
+      - name: market_timestamp
+        description: Timestamp when the market data was recorded
+        data_type: timestamp
+        tests:
+          - not_null
+      
+      - name: fetched_at
+        description: Timestamp when the data was fetched from the API (used for incremental processing)
+        data_type: timestamp
+        tests:
+          - not_null
