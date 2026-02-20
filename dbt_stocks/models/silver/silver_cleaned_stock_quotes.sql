@@ -1,3 +1,12 @@
+{{
+    config(
+        materialized='incremental',
+        unique_key=['symbol', 'market_timestamp'],
+        on_schema_change='append_new_columns',
+        incremental_strategy='merge'
+    )
+}}
+
 SELECT
     symbol,
     current_price,
@@ -11,3 +20,8 @@ SELECT
     fetched_at
 FROM {{ ref('bronze_stg_stock_quotes') }}
 WHERE current_price IS NOT NULL
+
+{% if is_incremental() %}
+    -- Only process new records based on fetched_at timestamp
+    AND fetched_at > (SELECT MAX(fetched_at) FROM {{ this }})
+{% endif %}
